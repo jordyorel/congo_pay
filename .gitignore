@@ -1,0 +1,29 @@
+# OS/macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors/IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Go build artifacts
+bin/
+dist/
+coverage/
+*.test
+*.out
+
+# Logs and temp
+logs/
+tmp/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Docker
+docker-data/
+

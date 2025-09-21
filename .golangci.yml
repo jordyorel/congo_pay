@@ -1,0 +1,30 @@
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - gofmt
+    - goimports
+    - revive
+    - errcheck
+    - gocyclo
+    - ineffassign
+    - gosimple
+
+linters-settings:
+  gocyclo:
+    min-complexity: 18
+  revive:
+    severity: warning
+    rules:
+      - name: indent-error-flow
+
+issues:
+  exclude-rules:
+    - linters:
+        - errcheck
+      text: "^(*sql\.Row\\)\.Scan"
+

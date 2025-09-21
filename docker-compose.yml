@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: congopay-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-congopay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-congopay}
+      POSTGRES_DB: ${POSTGRES_DB:-congopay}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: congopay-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # api:
+  #   build: .
+  #   container_name: congopay-api
+  #   env_file: .env
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   ports:
+  #     - "${PORT:-8080}:8080"
+  #   command: ["/usr/local/bin/app"]
+
+volumes:
+  db_data:
+  redis_data:
+

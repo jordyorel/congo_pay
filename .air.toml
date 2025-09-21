@@ -1,0 +1,15 @@
+# Air live-reload config (optional)
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/app ./cmd/api"
+  bin = "./tmp/app"
+  include_ext = ["go", "tpl", "tmpl", "html"]
+  exclude_dir = ["vendor", "tmp", "dist", "bin"]
+  delay = 1000
+
+[log]
+  time = true
+
