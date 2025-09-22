@@ -19,11 +19,32 @@ coverage/
 logs/
 tmp/
 
-# Environment files
-.env
-.env.local
-.env.*.local
+# Environment and secrets
+.env*
+!.env.example
+.envrc
+.direnv/
+secrets/
+secret.*
+secrets.*
+
+# Keys and certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Kube and cloud creds
+.kube/
+kubeconfig*
+.aws/
+.gcloud/
+.azure/
 
 # Docker
 docker-data/
 
+# Postman environments (may contain tokens)
+postman/*environment*.json
+!postman/CongoPay.postman_collection.json

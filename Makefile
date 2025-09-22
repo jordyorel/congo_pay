@@ -1,4 +1,4 @@
-.PHONY: help tidy build test run lint fmt docker-build compose-up compose-down compose-logs
+.PHONY: help tidy build test run lint fmt docker-build compose-up compose-down compose-logs dev
 
 APP_NAME := congopay
 
@@ -9,6 +9,7 @@ help:
 	@echo "  test           - run tests"
 	@echo "  lint           - run golangci-lint"
 	@echo "  fmt            - go fmt"
+	@echo "  run            - go run ./cmd/api"
 	@echo "  compose-up     - start postgres & redis"
 	@echo "  compose-down   - stop stack"
 	@echo "  compose-logs   - follow logs"
@@ -28,6 +29,9 @@ lint:
 fmt:
 	go fmt ./...
 
+run:
+	go run ./cmd/api
+
 docker-build:
 	docker build -t $(APP_NAME):dev .
 
@@ -39,4 +43,3 @@ compose-down:
 
 compose-logs:
 	docker compose logs -f
-

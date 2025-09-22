@@ -1,101 +1,66 @@
 package config
 
 import (
-	"fmt"
-	"os"
-	"strconv"
-	"strings"
-	"time"
+    "fmt"
+    "os"
+    "strconv"
+    "time"
 )
 
-const (
-	defaultAppName         = "CongoPay"
-	defaultAppEnv          = "development"
-	defaultPort            = "8080"
-	defaultLogLevel        = "info"
-	defaultShutdownDelay   = 10 * time.Second
-	defaultIdempotencyTTL  = 24 * time.Hour
-	idemTTLSecondsEnvVar   = "IDEMPOTENCY_TTL_SECONDS"
-	idemTTLDurEnvVar       = "IDEMPOTENCY_TTL"
-	shutdownSecondsEnvVar  = "SHUTDOWN_TIMEOUT_SECONDS"
-	shutdownDurationEnvVar = "SHUTDOWN_TIMEOUT"
-)
-
-// Config captures application runtime configuration loaded from environment variables.
 type Config struct {
-	AppName        string
-	AppEnv         string
-	Port           string
-	LogLevel       string
-	DatabaseURL    string
-	RedisURL       string
-	ShutdownPeriod time.Duration
-	IdempotencyTTL time.Duration
+    AppName       string
+    Env           string
+    Port          int
+    LogLevel      string
+    DatabaseURL   string
+    RedisURL      string
+    JWTSecret     string
+    SMSProvider   string
+    IdempotencyTTL time.Duration
 }
 
-// Load reads configuration values from the environment and populates a Config instance.
-func Load() (Config, error) {
-	cfg := Config{
-		AppName:        getEnv("APP_NAME", defaultAppName),
-		AppEnv:         getEnv("APP_ENV", defaultAppEnv),
-		Port:           getEnv("PORT", defaultPort),
-		LogLevel:       strings.ToLower(getEnv("LOG_LEVEL", defaultLogLevel)),
-		DatabaseURL:    os.Getenv("DATABASE_URL"),
-		RedisURL:       os.Getenv("REDIS_URL"),
-		ShutdownPeriod: defaultShutdownDelay,
-		IdempotencyTTL: defaultIdempotencyTTL,
-	}
-
-	if v := os.Getenv(shutdownSecondsEnvVar); v != "" {
-		seconds, err := strconv.Atoi(v)
-		if err != nil {
-			return Config{}, fmt.Errorf("invalid %s: %w", shutdownSecondsEnvVar, err)
-		}
-		cfg.ShutdownPeriod = time.Duration(seconds) * time.Second
-	} else if v := os.Getenv(shutdownDurationEnvVar); v != "" {
-		d, err := time.ParseDuration(v)
-		if err != nil {
-			return Config{}, fmt.Errorf("invalid %s: %w", shutdownDurationEnvVar, err)
-		}
-		cfg.ShutdownPeriod = d
-	}
-
-	if v := os.Getenv(idemTTLSecondsEnvVar); v != "" {
-		seconds, err := strconv.Atoi(v)
-		if err != nil {
-			return Config{}, fmt.Errorf("invalid %s: %w", idemTTLSecondsEnvVar, err)
-		}
-		cfg.IdempotencyTTL = time.Duration(seconds) * time.Second
-	} else if v := os.Getenv(idemTTLDurEnvVar); v != "" {
-		d, err := time.ParseDuration(v)
-		if err != nil {
-			return Config{}, fmt.Errorf("invalid %s: %w", idemTTLDurEnvVar, err)
-		}
-		cfg.IdempotencyTTL = d
-	}
-
-	if cfg.DatabaseURL == "" {
-		return Config{}, fmt.Errorf("DATABASE_URL must be set")
-	}
-
-	if cfg.RedisURL == "" {
-		return Config{}, fmt.Errorf("REDIS_URL must be set")
-	}
-
-	return cfg, nil
+func (c Config) Addr() string {
+    return fmt.Sprintf(":%d", c.Port)
 }
 
-// Address returns the listen address in the format Fiber expects.
-func (c Config) Address() string {
-	if strings.HasPrefix(c.Port, ":") {
-		return c.Port
-	}
-	return fmt.Sprintf(":%s", c.Port)
+// Address provides a compatibility alias used by other packages.
+func (c Config) Address() string { return c.Addr() }
+
+func getenv(key, def string) string {
+    if v := os.Getenv(key); v != "" {
+        return v
+    }
+    return def
 }
 
-func getEnv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
+func getint(key string, def int) int {
+    if v := os.Getenv(key); v != "" {
+        if n, err := strconv.Atoi(v); err == nil {
+            return n
+        }
+    }
+    return def
+}
+
+func getduration(key string, def time.Duration) time.Duration {
+    if v := os.Getenv(key); v != "" {
+        if d, err := time.ParseDuration(v); err == nil {
+            return d
+        }
+    }
+    return def
+}
+
+func Load() Config {
+    return Config{
+        AppName:        getenv("APP_NAME", "CongoPay"),
+        Env:            getenv("APP_ENV", "development"),
+        Port:           getint("PORT", 8080),
+        LogLevel:       getenv("LOG_LEVEL", "info"),
+        DatabaseURL:    getenv("DATABASE_URL", ""),
+        RedisURL:       getenv("REDIS_URL", ""),
+        JWTSecret:      getenv("JWT_SECRET", ""),
+        SMSProvider:    getenv("SMS_PROVIDER", ""),
+        IdempotencyTTL: getduration("IDEMPOTENCY_TTL", 10*time.Minute),
+    }
 }

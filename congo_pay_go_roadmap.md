@@ -4,7 +4,24 @@ This update adds a **card funding/withdrawal service** on top of the cash/agent 
 
 ---
 
-## 1) New service in repo scaffold
+## Progress Tracker (working doc)
+
+- [x] Repo scaffolding and base configs (`.gitignore`, `.editorconfig`, `.gitattributes`)
+- [x] Environment template added (`.env.example`)
+- [x] Dockerfile (multi-stage) and `docker-compose.yml` (Postgres, Redis, API)
+- [x] Makefile helpers (`build`, `test`, `run`, `compose-*`)
+- [x] Initialize Go module and minimal API (Fiber) with `/healthz`
+- [x] CI workflow (GitHub Actions) for tidy/build/test + Docker build
+- [x] Postman collection + local environment
+- [ ] Identity users: DB schema (users), repo wired, register/auth tested
+- [ ] Persistence wiring (pgx pool, Redis client) and readiness checks
+- [ ] Database migrations for ledger schema (Phase 1)
+- [ ] Core services (wallet, payments) fully implemented and tested
+- [ ] Card funding/withdrawal end‑to‑end with acquirer stub + migrations
+- [ ] USSD/SMS/QR baseline channels
+- [ ] Observability (metrics/logs/traces) and IaC
+
+## 1 New service in repo scaffold
 
 ```
 internal/
@@ -229,10 +246,31 @@ Do you want me to also extend the **USSD flow** to show “Fund by Card” and �
 **Exit criteria:** All ledger property tests pass; 99.99% idempotency reliability under fault injection; PII encrypted at rest; threat model reviewed.
 
 ### Implementation log
-- **Evolution 1:** Bootstrapped the Go API server skeleton with configuration loading, Postgres/Redis connectors, request ID middleware, and a dependency-aware health endpoint.
-- **Evolution 2:** Added structured logging plus audit and Redis-backed idempotency middleware, and exposed an `/api/v1/ping` baseline route for forthcoming Phase 1 services.
-- **Evolution 3:** Delivered identity registration/login, wallet provisioning, ledger-backed P2P transfers, notification stubs, and the foundational SQL schema powering the Phase 1 services.
-- **Evolution 4:** Landed card funding and withdrawal flows with a suspense-backed ledger implementation, acquirer stub, HTTP endpoints, and migrations to track transaction status for settlement.
+- [x] Bootstrap minimal API server (Fiber), config loader, `/healthz`, and `/api/v1/ping`.
+- [x] Repo infra: Docker/Compose, Makefile, CI, env templates, Postman.
+- [x] Request‑id + audit middleware, idempotency (enabled when Redis present).
+- [x] Postgres/Redis connectors (optional in dev) and health checks.
+- [ ] Identity: persistent users (DB schema + repo), register/login e2e, tests.
+- [ ] Wallet provisioning, P2P transfers, notification stubs, and base SQL schema.
+- [ ] Card funding/withdrawal flows with suspense ledger and acquirer stub.
+
+---
+
+## Next Up (Identity First)
+
+1) Users (Identity)
+- Add migration: `migrations/0001_users.sql` with `users(id uuid pk, phone text unique, tier text, pin_hash bytea, device_id text, created_at timestamptz)`
+- Wire repository to Postgres (already scaffolded) and add unit tests
+- Expose endpoints: `POST /api/v1/identity/register`, `POST /api/v1/identity/authenticate` (already scaffolded)
+- Happy-path Postman requests for register/authenticate
+
+2) Wallets
+- Migration: `wallets(id uuid pk, owner_id uuid fk users(id), account_code text unique, currency text, status text, created_at timestamptz)`
+- Wire repository + service; create on demand for new users
+
+3) Ledger base
+- Migration set for accounts, transactions, entries; constraints and indexes
+- Implement balance query and transfer invariants; add property tests
 
 ---
 
@@ -467,4 +505,3 @@ Do you want me to also extend the **USSD flow** to show “Fund by Card” and �
 - A **checklist spreadsheet** (CSV/XLSX) for this roadmap
 - **OpenAPI YAML** for `wallet`, `payments`, `funding`, `settlement`, `ussd`
 - **Gantt view** (Mermaid) inside `/docs/roadmap.mmd`
-

@@ -2,15 +2,14 @@
 
 Bootstrap configuration for a Go (Fiber) financial services/USSD/SMS project.
 
-This repo currently contains project configuration and infra scaffolding. Add your Go application code (e.g., `cmd/api`, `internal/...`) and enable the commented Docker build steps when ready.
+This repo includes a minimal Go Fiber API with a health route and config loader.
 
-## Quick Start
+## Quick Start (Local)
 
 - Copy env file: `cp .env.example .env` and update values.
 - Start infra: `make compose-up` (starts PostgreSQL and Redis).
-- Initialize Go module (once you add code):
-  - `go mod init github.com/your-org/congo_pay`
-  - `go mod tidy`
+- Install deps: `go mod tidy`
+- Run API: `make run` then visit `http://localhost:8080/healthz`
 - Lint/format (optional): `golangci-lint run` and `go fmt ./...`.
 
 ## Environment Variables
@@ -24,9 +23,17 @@ See `.env.example` for a working set, including:
 
 ## Docker
 
-- `docker-compose.yml` includes Postgres and Redis.
-- `Dockerfile` is a multi-stage build; un-comment the build steps once your Go code and `go.mod` exist.
-- Build image: `make docker-build`.
+- `docker-compose.yml` includes Postgres, Redis, and the API service.
+- `Dockerfile` builds the API binary.
+- Start entire stack: `docker compose up --build -d`
+- Check: `curl http://localhost:8080/healthz`
+
+## Environments
+
+- Development (`APP_ENV=development`, default):
+  - DB/Redis are optional. The app falls back to in-memory stores so routes work without infra.
+- Non‑development (e.g., `APP_ENV=staging`/`production`):
+  - Requires `DATABASE_URL` and `REDIS_URL`. The app fails fast if missing.
 
 ## Make Targets
 
@@ -45,8 +52,7 @@ GitHub Actions workflow runs tidy/build/test when `go.mod` exists and attempts a
 
 ## Next Steps
 
-1) Decide on module path and run `go mod init`.
-2) Scaffold `cmd/api/main.go` (e.g., with Fiber) and wire `DATABASE_URL` and `REDIS_URL`.
-3) Add migrations and seed data as needed.
-4) Un-comment Dockerfile steps and `api` service in `docker-compose.yml`.
-
+1) Flesh out modules under `internal/` (ledger, ussd, sms, users, wallets).
+2) Add persistence and migrations; wire `DATABASE_URL` and `REDIS_URL`.
+3) Add handlers/routes, validation, and error handling.
+4) Expand CI for linting and security checks.

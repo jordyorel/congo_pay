@@ -26,18 +26,17 @@ services:
     volumes:
       - redis_data:/data
 
-  # api:
-  #   build: .
-  #   container_name: congopay-api
-  #   env_file: .env
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   ports:
-  #     - "${PORT:-8080}:8080"
-  #   command: ["/usr/local/bin/app"]
+  api:
+    build: .
+    container_name: congopay-api
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "${PORT:-8080}:8080"
+    command: ["/usr/local/bin/app"]
 
 volumes:
   db_data:
   redis_data:
-
