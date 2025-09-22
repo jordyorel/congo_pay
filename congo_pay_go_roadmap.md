@@ -228,6 +228,12 @@ Do you want me to also extend the **USSD flow** to show “Fund by Card” and �
 
 **Exit criteria:** All ledger property tests pass; 99.99% idempotency reliability under fault injection; PII encrypted at rest; threat model reviewed.
 
+### Implementation log
+- **Evolution 1:** Bootstrapped the Go API server skeleton with configuration loading, Postgres/Redis connectors, request ID middleware, and a dependency-aware health endpoint.
+- **Evolution 2:** Added structured logging plus audit and Redis-backed idempotency middleware, and exposed an `/api/v1/ping` baseline route for forthcoming Phase 1 services.
+- **Evolution 3:** Delivered identity registration/login, wallet provisioning, ledger-backed P2P transfers, notification stubs, and the foundational SQL schema powering the Phase 1 services.
+- **Evolution 4:** Landed card funding and withdrawal flows with a suspense-backed ledger implementation, acquirer stub, HTTP endpoints, and migrations to track transaction status for settlement.
+
 ---
 
 ## Phase 2 – Channels baseline (QR static, USSD, SMS)
