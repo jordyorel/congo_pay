@@ -15,6 +15,9 @@ type Config struct {
     DatabaseURL   string
     RedisURL      string
     JWTSecret     string
+    RefreshSecret string
+    AccessTokenTTL  time.Duration
+    RefreshTokenTTL time.Duration
     SMSProvider   string
     IdempotencyTTL time.Duration
 }
@@ -60,6 +63,9 @@ func Load() Config {
         DatabaseURL:    getenv("DATABASE_URL", ""),
         RedisURL:       getenv("REDIS_URL", ""),
         JWTSecret:      getenv("JWT_SECRET", ""),
+        RefreshSecret:  getenv("REFRESH_SECRET", getenv("JWT_SECRET", "")),
+        AccessTokenTTL:  getduration("ACCESS_TTL", 15*time.Minute),
+        RefreshTokenTTL: getduration("REFRESH_TTL", 720*time.Hour),
         SMSProvider:    getenv("SMS_PROVIDER", ""),
         IdempotencyTTL: getduration("IDEMPOTENCY_TTL", 10*time.Minute),
     }

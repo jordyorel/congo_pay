@@ -48,3 +48,27 @@ func (r *memoryRepository) UpdateDevice(_ context.Context, id, deviceID string) 
     }
     return errors.New("user not found")
 }
+
+func (r *memoryRepository) FindByID(_ context.Context, id string) (User, error) {
+    r.mu.RLock()
+    defer r.mu.RUnlock()
+    for _, user := range r.users {
+        if user.ID == id {
+            return user, nil
+        }
+    }
+    return User{}, errors.New("user not found")
+}
+
+func (r *memoryRepository) UpdateTokenVersion(_ context.Context, id string, version int) error {
+    r.mu.Lock()
+    defer r.mu.Unlock()
+    for phone, user := range r.users {
+        if user.ID == id {
+            user.TokenVersion = version
+            r.users[phone] = user
+            return nil
+        }
+    }
+    return errors.New("user not found")
+}

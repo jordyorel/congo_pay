@@ -10,8 +10,9 @@ import (
 
 // Repository persists wallet metadata.
 type Repository interface {
-	Create(ctx context.Context, wallet Wallet) error
-	Get(ctx context.Context, id string) (Wallet, error)
+    Create(ctx context.Context, wallet Wallet) error
+    Get(ctx context.Context, id string) (Wallet, error)
+    FindByOwner(ctx context.Context, ownerID string) (Wallet, error)
 }
 
 // PostgresRepository stores wallets in PostgreSQL.
@@ -58,4 +59,25 @@ func (r *PostgresRepository) Get(ctx context.Context, id string) (Wallet, error)
 	w.OwnerID = ownerID.String()
 	w.CreatedAt = createdAt.UTC()
 	return w, nil
+}
+
+// FindByOwner returns the first wallet for an owner.
+func (r *PostgresRepository) FindByOwner(ctx context.Context, ownerID string) (Wallet, error) {
+    ownerUUID, err := uuid.Parse(ownerID)
+    if err != nil {
+        return Wallet{}, err
+    }
+    row := r.db.QueryRow(ctx, `SELECT id, owner_id, account_code, currency, status, created_at
+        FROM wallets WHERE owner_id = $1 LIMIT 1`, ownerUUID)
+    var w Wallet
+    var createdAt time.Time
+    var idVal uuid.UUID
+    var owner uuid.UUID
+    if err := row.Scan(&idVal, &owner, &w.AccountCode, &w.Currency, &w.Status, &createdAt); err != nil {
+        return Wallet{}, err
+    }
+    w.ID = idVal.String()
+    w.OwnerID = owner.String()
+    w.CreatedAt = createdAt.UTC()
+    return w, nil
 }

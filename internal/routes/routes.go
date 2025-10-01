@@ -10,10 +10,12 @@ import (
 
     "github.com/gofiber/fiber/v2"
     "github.com/gofiber/fiber/v2/middleware/recover"
+    "github.com/gofiber/fiber/v2/middleware/logger"
     "github.com/jackc/pgx/v5/pgxpool"
     "github.com/redis/go-redis/v9"
 
     "github.com/congo-pay/congo_pay/internal/config"
+    "github.com/congo-pay/congo_pay/internal/auth"
     "github.com/congo-pay/congo_pay/internal/funding"
     "github.com/congo-pay/congo_pay/internal/identity"
     "github.com/congo-pay/congo_pay/internal/ledger"
@@ -45,7 +47,12 @@ func Setup(app *fiber.App, d Deps) error {
     // Middlewares
     app.Use(recover.New())
     app.Use(middleware.RequestID())
-    app.Use(middleware.Audit(d.Logger))
+    // Plain text access log in desired format: [HH:MM:SS] 200 -  145ms METHOD /path
+    app.Use(logger.New(logger.Config{
+        Format:     "[${time}] ${status} -  ${latency} ${method} ${path}\n",
+        TimeFormat: "15:04:05",
+        TimeZone:   "Local",
+    }))
     if d.Cache != nil {
         app.Use(middleware.Idempotency(d.Cache, d.Cfg.IdempotencyTTL, d.Logger))
     }
@@ -78,6 +85,8 @@ func Setup(app *fiber.App, d Deps) error {
         identityRepo = identity.NewMemoryRepository()
     }
     identitySvc := identity.NewService(identityRepo)
+    authSvc := auth.NewService(d.Cfg, identityRepo)
+    authHandler := auth.NewHandler(identitySvc, authSvc, walletSvc)
     fundingSvc, err := funding.NewService(context.Background(), ledgerBackend, walletSvc, nil)
     if err != nil {
         return err
@@ -86,7 +95,7 @@ func Setup(app *fiber.App, d Deps) error {
     fundingHandler := funding.NewHandler(fundingSvc)
     paymentHandler := payments.NewHandler(paymentSvc)
     walletHandler := wallet.NewHandler(walletSvc)
-    identityHandler := identity.NewHandler(identitySvc)
+    // identityHandler not needed; using service directly for register/auth
 
     // API routes
     api := app.Group("/api/v1")
@@ -99,11 +108,34 @@ func Setup(app *fiber.App, d Deps) error {
         })
     })
 
-    // Delegate to sub-route modules for clarity
-    RegisterIdentityRoutes(api, identityHandler)
-    RegisterWalletRoutes(api, walletHandler)
-    RegisterFundingRoutes(api, fundingHandler)
-    RegisterPaymentRoutes(api, paymentHandler)
+    // Public routes
+    RegisterIdentityRoutes(api, identitySvc, walletSvc, d.Logger)
+    rateLimiter := middleware.LoginRateLimit(d.Cache, 5)
+    RegisterAuthRoutes(api, authHandler, rateLimiter)
+
+    // Protected routes
+    jwtmw := middleware.JWTAuth(d.Cfg, identityRepo)
+    protected := api.Group("", jwtmw)
+    RegisterWalletMeRoute(protected, walletSvc, identityRepo)
+    // Profile endpoint
+    protected.Get("/me", func(c *fiber.Ctx) error {
+        uid, _ := c.Locals("user_id").(string)
+        if uid == "" { return c.SendStatus(http.StatusUnauthorized) }
+        user, err := identityRepo.FindByID(c.UserContext(), uid)
+        if err != nil { return fiber.NewError(http.StatusUnauthorized, "user not found") }
+        return c.JSON(fiber.Map{
+            "user_id": user.ID,
+            "phone": user.Phone,
+            "tier": user.Tier,
+            "device_id": user.DeviceID,
+            "token_version": user.TokenVersion,
+            "created_at": user.CreatedAt,
+            "last_login": user.LastLogin,
+        })
+    })
+    RegisterWalletRoutes(protected, walletHandler)
+    RegisterFundingRoutes(protected, fundingHandler)
+    RegisterPaymentRoutes(protected, paymentHandler)
 
     return nil
 }

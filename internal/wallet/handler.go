@@ -22,11 +22,11 @@ type createRequest struct {
 }
 
 type walletResponse struct {
-	ID          string `json:"id"`
-	OwnerID     string `json:"owner_id"`
-	AccountCode string `json:"account_code"`
-	Currency    string `json:"currency"`
-	Status      string `json:"status"`
+    ID          string `json:"id"`
+    OwnerID     string `json:"owner_id"`
+    AccountCode string `json:"account_code"`
+    Currency    string `json:"currency"`
+    Status      string `json:"status"`
 }
 
 // Create provisions a wallet for the authenticated owner.
@@ -46,6 +46,22 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 		Currency:    wallet.Currency,
 		Status:      wallet.Status,
 	})
+}
+
+// Get returns wallet metadata by ID (no balance).
+func (h *Handler) Get(c *fiber.Ctx) error {
+    walletID := c.Params("walletId")
+    w, err := h.service.Get(c.UserContext(), walletID)
+    if err != nil {
+        return fiber.NewError(http.StatusNotFound, err.Error())
+    }
+    return c.Status(http.StatusOK).JSON(walletResponse{
+        ID:          w.ID,
+        OwnerID:     w.OwnerID,
+        AccountCode: w.AccountCode,
+        Currency:    w.Currency,
+        Status:      w.Status,
+    })
 }
 
 // Balance returns the wallet balance.

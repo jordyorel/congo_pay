@@ -8,8 +8,16 @@ This repo includes a minimal Go Fiber API with a health route and config loader.
 
 - Copy env file: `cp .env.example .env` and update values.
 - Start infra: `make compose-up` (starts PostgreSQL and Redis).
+- Apply migrations (users): `make migrate-up`
 - Install deps: `go mod tidy`
 - Run API: `make run` then visit `http://localhost:8080/healthz`
+- Test auth first:
+  - Register: `POST {{base_url}}/api/v1/identity/register` with `{ "phone": "+237612345678", "pin": "1234", "device_id": "device-abc" }` (auto‑creates wallet and returns `wallet_id`).
+  - Login: `POST {{base_url}}/api/v1/auth/login` → returns `access_token`, `refresh_token`, `token_version`, `wallet_id`.
+  - Me: `GET {{base_url}}/api/v1/me` with `Authorization: Bearer {{access_token}}`.
+  - Refresh: `POST {{base_url}}/api/v1/auth/refresh` with `refresh_token` to get a new access token.
+  - Logout: `POST {{base_url}}/api/v1/auth/logout` with `{ "user_id": "{{user_id}}" }` (invalidates tokens by bumping token_version).
+- Then test wallet endpoints (JWT required): get, balance.
 - Lint/format (optional): `golangci-lint run` and `go fmt ./...`.
 
 ## Environment Variables
@@ -26,7 +34,23 @@ See `.env.example` for a working set, including:
 - `docker-compose.yml` includes Postgres, Redis, and the API service.
 - `Dockerfile` builds the API binary.
 - Start entire stack: `docker compose up --build -d`
+- Apply migrations: `make migrate-up`
 - Check: `curl http://localhost:8080/healthz`
+
+## No Docker (Local Postgres)
+
+If Docker isn’t available, you can run Postgres locally and use psql:
+
+- Install Postgres client: `brew install libpq && brew link --force libpq`
+- Run a local server (options):
+  - Postgres.app, or
+  - `brew install postgresql@16 && brew services start postgresql@16`
+- Create DB and user (example):
+  - `createuser -s congopay` (or use your own user)
+  - `createdb congopay`
+- Set `DATABASE_URL` in `.env` to local, e.g.: `postgresql://congopay:congopay@localhost:5432/congopay?sslmode=disable`
+- Apply migrations locally: `make migrate-local`
+- Start API: `make run`
 
 ## Environments
 

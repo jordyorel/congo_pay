@@ -28,27 +28,31 @@ type transferRequest struct {
 
 // P2P processes a wallet-to-wallet transfer.
 func (h *Handler) P2P(c *fiber.Ctx) error {
-	var req transferRequest
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(http.StatusBadRequest, err.Error())
-	}
+    var req transferRequest
+    if err := c.BodyParser(&req); err != nil {
+        return fiber.NewError(http.StatusBadRequest, err.Error())
+    }
+    uid, _ := c.Locals("user_id").(string)
 
-	res, err := h.service.Transfer(c.UserContext(), TransferInput{
-		FromWalletID: req.FromWalletID,
-		ToWalletID:   req.ToWalletID,
-		Amount:       req.Amount,
-		ClientTxID:   req.ClientTxID,
-	})
-	if err != nil {
-		switch {
-		case errors.Is(err, ledger.ErrInsufficientFunds):
-			return fiber.NewError(http.StatusBadRequest, "insufficient funds")
-		case errors.Is(err, ledger.ErrDuplicateTransaction):
-			return fiber.NewError(http.StatusConflict, "duplicate transaction")
-		default:
-			return fiber.NewError(http.StatusInternalServerError, err.Error())
-		}
-	}
+    res, err := h.service.Transfer(c.UserContext(), TransferInput{
+        FromWalletID: req.FromWalletID,
+        ToWalletID:   req.ToWalletID,
+        Amount:       req.Amount,
+        ClientTxID:   req.ClientTxID,
+        RequestorUserID: uid,
+    })
+    if err != nil {
+        switch {
+        case errors.Is(err, ledger.ErrInsufficientFunds):
+            return fiber.NewError(http.StatusBadRequest, "insufficient funds")
+        case errors.Is(err, ledger.ErrDuplicateTransaction):
+            return fiber.NewError(http.StatusConflict, "duplicate transaction")
+        case errors.Is(err, ErrNotOwner):
+            return fiber.NewError(http.StatusForbidden, "not owner of source wallet")
+        default:
+            return fiber.NewError(http.StatusInternalServerError, err.Error())
+        }
+    }
 
 	return c.Status(http.StatusCreated).JSON(fiber.Map{
 		"transaction_id": res.TransactionID,

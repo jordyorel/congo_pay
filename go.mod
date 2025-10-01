@@ -5,12 +5,12 @@ go 1.23.0
 toolchain go1.24.7
 
 require (
-	github.com/alicebob/miniredis/v2 v2.35.0
-	github.com/gofiber/fiber/v2 v2.52.9
-	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.7.6
-	github.com/redis/go-redis/v9 v9.14.0
-	golang.org/x/crypto v0.37.0
+    github.com/alicebob/miniredis/v2 v2.35.0
+    github.com/gofiber/fiber/v2 v2.52.9
+    github.com/google/uuid v1.6.0
+    github.com/jackc/pgx/v5 v5.7.6
+    github.com/redis/go-redis/v9 v9.14.0
+    golang.org/x/crypto v0.37.0
 )
 
 require (

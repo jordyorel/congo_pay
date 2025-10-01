@@ -3,6 +3,8 @@ package identity
 import (
     "context"
     "errors"
+    "regexp"
+    "strings"
     "time"
 
     "github.com/google/uuid"
@@ -29,6 +31,8 @@ func (s *Service) Register(ctx context.Context, creds Credentials) (User, error)
     if len(creds.PIN) < 4 {
         return User{}, errors.New("PIN must be at least 4 digits")
     }
+    phone, err := normalizePhone(creds.Phone)
+    if err != nil { return User{}, err }
 
     hash, err := bcrypt.GenerateFromPassword([]byte(creds.PIN), bcrypt.DefaultCost)
     if err != nil {
@@ -37,10 +41,11 @@ func (s *Service) Register(ctx context.Context, creds Credentials) (User, error)
 
     user := User{
         ID:        uuid.New().String(),
-        Phone:     creds.Phone,
+        Phone:     phone,
         Tier:      tierZero,
         PINHash:   hash,
         DeviceID:  creds.DeviceID,
+        TokenVersion: 0,
         CreatedAt: time.Now().UTC(),
     }
 
@@ -53,7 +58,9 @@ func (s *Service) Register(ctx context.Context, creds Credentials) (User, error)
 
 // Authenticate verifies credentials and device binding.
 func (s *Service) Authenticate(ctx context.Context, creds Credentials) (User, error) {
-    user, err := s.repo.FindByPhone(ctx, creds.Phone)
+    phone, err := normalizePhone(creds.Phone)
+    if err != nil { return User{}, err }
+    user, err := s.repo.FindByPhone(ctx, phone)
     if err != nil {
         return User{}, err
     }
@@ -78,5 +85,21 @@ func (s *Service) Authenticate(ctx context.Context, creds Credentials) (User, er
         user.Tier = tierOne
     }
 
+    user.LastLogin = time.Now().UTC()
     return user, nil
+}
+
+var phoneDigits = regexp.MustCompile(`[^0-9+]`)
+
+func normalizePhone(p string) (string, error) {
+    p = strings.TrimSpace(p)
+    p = phoneDigits.ReplaceAllString(p, "")
+    if p == "" { return "", errors.New("phone required") }
+    // allow leading +, otherwise require at least 8 digits
+    digits := p
+    if strings.HasPrefix(digits, "+") { digits = digits[1:] }
+    if len(digits) < 8 || len(digits) > 15 {
+        return "", errors.New("invalid phone length")
+    }
+    return p, nil
 }

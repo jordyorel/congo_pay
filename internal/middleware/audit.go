@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,6 +22,7 @@ func Audit(logger *slog.Logger) fiber.Handler {
 			slog.String("method", c.Method()),
 			slog.String("path", c.Path()),
 			slog.Int("status", status),
+			slog.String("status_text", http.StatusText(status)),
 			slog.Duration("duration", duration),
 		}
 		if requestID != "" {

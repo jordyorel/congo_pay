@@ -82,3 +82,8 @@ func (s *Service) Balance(ctx context.Context, id string) (Balance, error) {
     }
     return Balance{WalletID: wallet.ID, Amount: amount, AsOf: time.Now().UTC()}, nil
 }
+
+// GetByOwner retrieves a wallet using the owner identifier.
+func (s *Service) GetByOwner(ctx context.Context, ownerID string) (Wallet, error) {
+    return s.repo.FindByOwner(ctx, ownerID)
+}

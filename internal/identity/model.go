@@ -9,6 +9,8 @@ type User struct {
     Tier      string
     PINHash   []byte
     DeviceID  string
+    TokenVersion int
+    LastLogin time.Time
     CreatedAt time.Time
 }
 

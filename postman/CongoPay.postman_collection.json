@@ -20,6 +20,185 @@
           "raw": "{{base_url}}/healthz"
         }
       }
+    },
+    {
+      "name": "Wallet - Mine (user + wallet)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{access_token}}"}
+        ],
+        "url": {"raw": "{{base_url}}/api/v1/wallet"}
+      },
+      "event": [
+        {"listen":"test","script":{"type":"text/javascript","exec":[
+          "const setVar = (k,v) => (pm.environment.name ? pm.environment.set(k,v) : pm.collectionVariables.set(k,v));",
+          "let json; try { json = pm.response.json(); } catch(e) { json = null; }",
+          "if (json && json.wallet && json.wallet.id) setVar('wallet_id', json.wallet.id);",
+          "if (json && json.user && json.user.id) setVar('user_id', json.user.id);"
+        ]}}
+      ]
+    },
+    {
+      "name": "Auth - Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"+237612345678\",\n  \"pin\": \"1234\",\n  \"device_id\": \"device-abc\"\n}"
+        },
+        "url": {"raw": "{{base_url}}/api/v1/identity/register"}
+      },
+      "event": [
+        {"listen":"test","script":{"type":"text/javascript","exec":[
+          "const setVar = (k,v) => (pm.environment.name ? pm.environment.set(k,v) : pm.collectionVariables.set(k,v));",
+          "let json; try { json = pm.response.json(); } catch(e) { json = null; }",
+          "if (json) {",
+          "  if (json.user_id) setVar('user_id', json.user_id);",
+          "  if (json.wallet_id) setVar('wallet_id', json.wallet_id);",
+          "}"
+        ]}}
+      ]
+    },
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"+237612345678\",\n  \"pin\": \"1234\",\n  \"device_id\": \"device-abc\"\n}"
+        },
+        "url": {"raw": "{{base_url}}/api/v1/auth/login"}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const setVar = (k,v) => (pm.environment.name ? pm.environment.set(k,v) : pm.collectionVariables.set(k,v));",
+              "let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "if (json) {",
+              "  if (json.access_token) setVar('access_token', json.access_token);",
+              "  if (json.refresh_token) setVar('refresh_token', json.refresh_token);",
+              "  if (json.user_id) setVar('user_id', json.user_id);",
+              "  if (json.wallet_id) setVar('wallet_id', json.wallet_id);",
+              "  if (json.token_version !== undefined) setVar('token_version', json.token_version);",
+              "  if (json.expires_in !== undefined) setVar('access_token_expires_in', json.expires_in);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Refresh",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+        },
+        "url": {"raw": "{{base_url}}/api/v1/auth/refresh"}
+      },
+      "event": [
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "const setVar = (k,v) => (pm.environment.name ? pm.environment.set(k,v) : pm.collectionVariables.set(k,v));",
+          "let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+          "if (json && json.access_token) setVar('access_token', json.access_token);",
+          "if (json && json.expires_in !== undefined) setVar('access_token_expires_in', json.expires_in);"
+        ]}}
+      ]
+    },
+    {
+      "name": "Auth - Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": \"{{user_id}}\"\n}"
+        },
+        "url": {"raw": "{{base_url}}/api/v1/auth/logout"}
+      }
+    },
+    {
+      "name": "Me - Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{access_token}}"}
+        ],
+        "url": {"raw": "{{base_url}}/api/v1/me"}
+      }
+    },
+    {
+      "name": "Wallet - Get",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{access_token}}"}
+        ],
+        "url": {"raw": "{{base_url}}/api/v1/wallets/{{wallet_id}}"}
+      },
+      "event": [
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "const setVar = (k,v) => (pm.environment.name ? pm.environment.set(k,v) : pm.collectionVariables.set(k,v));",
+          "let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+          "if (json && json.id) setVar('wallet_id', json.id);"
+        ]}}
+      ]
+    },
+    {
+      "name": "Funding - Card In (fund wallet)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{access_token}}"},
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 1000,\n  \"client_tx_id\": \"cardin-{{$timestamp}}\",\n  \"card_number\": \"4111111111111111\",\n  \"expiry\": \"12/26\",\n  \"cvv\": \"123\"\n}"
+        },
+        "url": {"raw": "{{base_url}}/api/v1/wallets/{{wallet_id}}/fund/card"}
+      }
+    },
+    {
+      "name": "Wallet - Balance",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{access_token}}"}
+        ],
+        "url": {"raw": "{{base_url}}/api/v1/wallets/{{wallet_id}}/balance"}
+      }
+    },
+    {
+      "name": "Payments - P2P Transfer (no fee)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{access_token}}"},
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from_wallet_id\": \"{{wallet_id}}\",\n  \"to_wallet_id\": \"{{to_wallet_id}}\",\n  \"amount\": 100,\n  \"client_tx_id\": \"p2p-{{$timestamp}}\"\n}"
+        },
+        "url": {"raw": "{{base_url}}/api/v1/payments/p2p"}
+      }
     }
   ]
 }

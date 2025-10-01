@@ -31,6 +31,7 @@ type TransferInput struct {
     ToWalletID   string
     Amount       int64
     ClientTxID   string
+    RequestorUserID string
 }
 
 // TransferResult describes the ledger outcome of a P2P transfer.
@@ -40,6 +41,9 @@ type TransferResult struct {
     ToBalance     int64
     CompletedAt   time.Time
 }
+
+// ErrNotOwner indicates the caller does not own the source wallet.
+var ErrNotOwner = errors.New("not owner of source wallet")
 
 // Transfer posts a balanced ledger entry between two wallets.
 func (s *Service) Transfer(ctx context.Context, input TransferInput) (TransferResult, error) {
@@ -53,6 +57,9 @@ func (s *Service) Transfer(ctx context.Context, input TransferInput) (TransferRe
     fromWallet, err := s.walletService.Get(ctx, input.FromWalletID)
     if err != nil {
         return TransferResult{}, err
+    }
+    if input.RequestorUserID != "" && fromWallet.OwnerID != input.RequestorUserID {
+        return TransferResult{}, ErrNotOwner
     }
     toWallet, err := s.walletService.Get(ctx, input.ToWalletID)
     if err != nil {
